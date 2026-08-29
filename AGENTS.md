@@ -8,7 +8,7 @@ This file provides guidance when working with code in this repository.
 - The `.xcodeproj` is generated and gitignored. Run `xcodegen generate` after adding, removing, or renaming files, or after editing `project.yml`.
 - One app target, tvOS only. There is no iOS code and no `#if os(iOS)` anywhere; keep it that way.
 - Build with the Xcode beta toolchain (`DEVELOPER_DIR=/Applications/Xcode-beta.app`) - the physical Apple TV and the simulator both run the tvOS 27 beta.
-- Warp needs Loom's `GET /api/v1/channels`, which the real server does not implement yet. Develop against `scripts/mock-loom.py`, which proxies the real Loom and synthesizes that one endpoint.
+- The real Loom (`http://10.100.90.20:8097`) serves `GET /api/v1/channels` and is the default for everything. `scripts/mock-loom.py` is kept only for developing against a channels-API change that is not deployed yet, and for a deterministic lineup in simulator screenshot checks (see Mock Loom).
 - Debug launch arguments: `-server <address>`, `-channel <number>`, `-guide` (open the guide on launch), `-freeze` (stop the displayed clock for screenshots), `-surf <n>` (auto-flip channels every 8 s, n times, logging each - the unattended latency run on the physical box).
 - Video playback works in the tvOS simulator for H.264/HEVC only. AV1 crashes the simulator's Metal driver during frame upload. The mock's HDR and Mix channels land on AV1 titles, so simulator checks must use `-channel` to pick a show channel (1-4 are H.264/HEVC).
 
@@ -74,7 +74,12 @@ Never commit `DerivedData*` output (gitignored).
 
 ## Mock Loom
 
-`scripts/mock-loom.py` (Python 3 stdlib only) reverse-proxies every request to the real Loom and synthesizes `GET /api/v1/channels` from the real catalog, exactly per `docs/proposal.md` 3.3. It is both the development harness and the reference for the contract Loom is being built against.
+The real Loom is the default and normally all you need. `scripts/mock-loom.py` (Python 3 stdlib only) reverse-proxies every request to the real Loom and synthesizes `GET /api/v1/channels` from the real catalog, exactly per `docs/proposal.md` 3.3. Keep it for exactly two situations:
+
+1. Developing the client half of a channels-API change before it is deployed to Loom (Loom and Warp change together with no compatibility shims, so this is how the Warp side gets built first). Teach the mock the new shape, build against it, then deploy Loom.
+2. A deterministic lineup for simulator screenshot checks: the mock's schedule is fixed for a given `--seed`, while the real server's moves with the clock.
+
+The trap: the mock encodes the contract independently. When the real response shape changes, update the mock in the same change or it will silently disagree.
 
 ```bash
 python3 scripts/mock-loom.py --loom http://10.100.90.20:8097 --port 8098
@@ -130,10 +135,10 @@ xcrun devicectl device install app --device 35085BEA-A61D-54EA-A44D-EABC64DC0EDF
 # note the '--': devicectl otherwise parses '-server' as one of its own options.
 xcrun devicectl device process launch --terminate-existing --console \
   --device 35085BEA-A61D-54EA-A44D-EABC64DC0EDF -- \
-  xyz.five82.warp -server http://10.100.90.134:8098 -channel 1 -surf 12
+  xyz.five82.warp -server http://10.100.90.20:8097 -channel 1 -surf 12
 ```
 
-Keep `mock-loom.py` running while the box is using it, and use a timeout around the launch - `--console` blocks until the app exits.
+Use a timeout around the launch - `--console` blocks until the app exits. If the run is against the mock instead, keep `mock-loom.py` running and pass this Mac's address (`WARP_SERVER=http://10.100.90.134:8098` for `device-surf.sh`).
 
 **The box must be awake.** A sleeping Apple TV refuses foreground app launches ("System is asleep - foreground app launch forbidden") and there is no way to wake it over the network from here (Wake-on-LAN does not); press a button on the remote first. Installs work while it sleeps; launches do not.
 
@@ -153,6 +158,8 @@ The three instrumented lines:
 - `warp.display ...` - `isDisplayCriteriaMatchingEnabled` at launch, the pin itself, and every `AVDisplayManagerModeSwitchStart`/`End` notification with a timestamp. Any mode switch during a surf run means the pin is not holding.
 
 Baseline measured 2026-08-29 on the Living Room Apple TV (A12, mock Loom on the Mac, `device-surf.sh 12 4`): matching enabled, pinned HDR10 4K @60 Hz, exactly one modeSwitchStart/End at launch and none across 12 flips that crossed SDR -> 4K HDR HEVC -> SDR twice. `warp.tune` 449-782 ms for warm HEVC/H.264 flips (4K HDR HEVC 647-657 ms), 965 ms after the gated AV1 channels, 732 ms cold at launch; 1080p AV1 (dav1d software) 596-634 ms. Surface `kCGColorSpaceITUR_2100_PQ` / `rgb10a2Unorm` on the box.
+
+Same day against the live Loom (`device-surf.sh 10 4`, after the channels deploy): one mode switch at launch, none across 10 flips spanning three SDR/4K-HDR crossings; `warp.tune` 212-389 ms on the show channels and 469-720 ms on 4K HDR HEVC movies, median about 400 ms.
 
 ## tvOS quirks that apply here
 
