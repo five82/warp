@@ -70,8 +70,10 @@ struct GuideView: View {
     /// never scrolls away.
     private var channelColumn: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Lines up with the ruler above the first row.
-            Color.clear.frame(height: 30)
+            // Lines up with the ruler above the first row. The width matters:
+            // an unsized Color is horizontally flexible, and the HStack would
+            // then split the screen between this column and the grid.
+            Color.clear.frame(width: Self.headerWidth, height: 30)
             ForEach(lineup.channels) { channel in
                 HStack(spacing: 16) {
                     Text(String(channel.number))
@@ -87,6 +89,7 @@ struct GuideView: View {
                 .frame(width: Self.headerWidth, height: Self.rowHeight, alignment: .leading)
             }
         }
+        .frame(width: Self.headerWidth)
     }
 
     /// Half-hour ticks from the guide's origin.
