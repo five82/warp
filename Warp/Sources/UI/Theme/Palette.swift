@@ -30,14 +30,18 @@ extension Color {
     }
 }
 
-/// The thread a channel wears: shows teal, genres cobalt, HDR amber, Mix ember.
-func channelThread(_ kind: String) -> Color {
-    switch kind {
-    case "show": .teal
-    case "genre": .cobalt
-    case "hdr": .amber
-    default: .ember
+/// The thread a channel wears, chosen by its key so a channel keeps its color
+/// across launches and across lineup edits around it. The lineup is hand-built
+/// on the server with no kind field, so there is nothing more meaningful to
+/// color by.
+func channelThread(_ key: String) -> Color {
+    let threads: [Color] = [.teal, .cobalt, .amber, .ember]
+    // FNV-1a, so the choice does not depend on Swift's per-process hash seed.
+    var hash: UInt32 = 2_166_136_261
+    for byte in key.utf8 {
+        hash = (hash ^ UInt32(byte)) &* 16_777_619
     }
+    return threads[Int(hash % UInt32(threads.count))]
 }
 
 /// A color as plain RGB in [0, 1], for the HSV math the background treatments

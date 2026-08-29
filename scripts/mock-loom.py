@@ -210,11 +210,10 @@ class Entry:
 
 
 class Channel:
-    def __init__(self, number, key, name, kind, programs):
+    def __init__(self, number, key, name, programs):
         self.number = number
         self.key = key
         self.name = name
-        self.kind = kind
         self.programs = programs
 
     def to_json(self, win_start, win_end):
@@ -225,7 +224,6 @@ class Channel:
             "number": self.number,
             "key": self.key,
             "name": self.name,
-            "kind": self.kind,
             "programs": progs,
         }
 
@@ -379,18 +377,18 @@ def build_lineup(loom, seed):
 
     channels = []
 
-    def add(key, name, kind, picker):
+    def add(key, name, picker):
         programs = lay_out(picker, start_ms, end_ms, counter)
         if not programs:
             return
-        channels.append(Channel(len(channels) + 1, key, name, kind, programs))
+        channels.append(Channel(len(channels) + 1, key, name, programs))
 
     # Rule 1: the shows with the most playable episodes, aired in order and looping.
     ranked_shows = sorted(eps_by_show.items(),
                           key=lambda kv: (-len(kv[1]), show_title.get(kv[0], ""), kv[0]))
     for show_id, eps in ranked_shows[:TOP_SHOWS]:
         ordered = sorted(eps, key=lambda e: (e.season_number or 0, e.episode_number or 0, e.item_id))
-        add("show:%s" % show_id, show_title.get(show_id, "Show %s" % show_id), "show",
+        add("show:%s" % show_id, show_title.get(show_id, "Show %s" % show_id),
             sequential_picker(ordered))
 
     # Rule 2: the movie genres with the most playable movies.
@@ -400,18 +398,18 @@ def build_lineup(loom, seed):
         key = "genre:%s" % gid
         rng = channel_rng(seed, key)
         pool = cap_pool(movies, rng)
-        add(key, genre_name.get(gid, str(gid)), "genre", shuffled_picker(pool, rng))
+        add(key, genre_name.get(gid, str(gid)), shuffled_picker(pool, rng))
 
     # Rule 3: everything whose first video stream is HDR or Dolby Vision.
     hdr = [e for e in entries if e.dynamic_range in HDR_RANGES]
     if hdr:
         rng = channel_rng(seed, "hdr")
-        add("hdr", "HDR", "hdr", shuffled_picker(cap_pool(hdr, rng), rng))
+        add("hdr", "HDR", shuffled_picker(cap_pool(hdr, rng), rng))
 
     # Rule 4: everything playable.
     if entries:
         rng = channel_rng(seed, "mix")
-        add("mix", "Mix", "mix", shuffled_picker(cap_pool(entries, rng), rng))
+        add("mix", "Mix", shuffled_picker(cap_pool(entries, rng), rng))
 
     elapsed = time.time() - t0
     log("")

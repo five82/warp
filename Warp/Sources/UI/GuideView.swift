@@ -78,7 +78,7 @@ struct GuideView: View {
                 HStack(spacing: 16) {
                     Text(String(channel.number))
                         .font(.titleMedium.monospacedDigit())
-                        .foregroundStyle(channelThread(channel.kind))
+                        .foregroundStyle(channelThread(channel.key))
                         .frame(width: 54, alignment: .trailing)
                     Text(channel.name)
                         .font(.titleSmall)
@@ -114,7 +114,7 @@ struct GuideView: View {
     }
 
     private func row(for channel: Channel) -> some View {
-        let accent = channelThread(channel.kind)
+        let accent = channelThread(channel.key)
         let visible = channel.programs.filter { $0.endsAt > origin }
         return HStack(spacing: 6) {
             ForEach(visible) { program in

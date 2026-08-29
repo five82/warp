@@ -167,11 +167,10 @@ struct Channel: Codable, Identifiable, Hashable {
     let number: Int
     let key: String
     let name: String
-    let kind: String
     let programs: [Program]
 
     private enum CodingKeys: String, CodingKey {
-        case id, number, key, name, kind, programs
+        case id, number, key, name, programs
     }
 
     init(from decoder: Decoder) throws {
@@ -180,18 +179,16 @@ struct Channel: Codable, Identifiable, Hashable {
         number = try container.decode(Int.self, forKey: .number)
         key = try container.decode(String.self, forKey: .key)
         name = try container.decode(String.self, forKey: .name)
-        kind = try container.decode(String.self, forKey: .kind)
         // The contract promises [] rather than null, but Go marshals nil
         // slices as null and every other Loom list wrapper tolerates it.
         programs = try container.decodeIfPresent([Program].self, forKey: .programs) ?? []
     }
 
-    init(id: Int64, number: Int, key: String, name: String, kind: String, programs: [Program]) {
+    init(id: Int64, number: Int, key: String, name: String, programs: [Program]) {
         self.id = id
         self.number = number
         self.key = key
         self.name = name
-        self.kind = kind
         self.programs = programs
     }
 

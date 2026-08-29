@@ -48,7 +48,6 @@ func makeChannel(
     number: Int = 1,
     key: String = "show:1",
     name: String = "Channel",
-    kind: String = "show",
     from start: Date,
     blocks: Int = 4,
     minutes: Double = 30,
@@ -62,7 +61,7 @@ func makeChannel(
             minutes: minutes
         ))
     }
-    return Channel(id: id, number: number, key: key, name: name, kind: kind, programs: programs)
+    return Channel(id: id, number: number, key: key, name: name, programs: programs)
 }
 
 /// The client's decoder configuration, for decoding fixtures the same way.

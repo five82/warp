@@ -13,7 +13,6 @@ import Testing
           "number": 3,
           "key": "show:2316",
           "name": "The Office",
-          "kind": "show",
           "programs": [
             {
               "id": 9812,
@@ -47,7 +46,6 @@ import Testing
         let channel = try #require(lineup.channels.first)
         #expect(channel.number == 3)
         #expect(channel.key == "show:2316")
-        #expect(channel.kind == "show")
         let program = try #require(channel.programs.first)
         #expect(program.id == 9812)
         #expect(program.item.title == "Diversity Day")
@@ -72,7 +70,7 @@ import Testing
 
         let nullPrograms = """
         {"now": "2026-08-29T20:15:03Z", "items": [
-          {"id": 1, "number": 1, "key": "mix", "name": "Mix", "kind": "mix", "programs": null}
+          {"id": 1, "number": 1, "key": "mix", "name": "Mix", "programs": null}
         ]}
         """
         let lineup = try loomDecoder().decode(Lineup.self, from: Data(nullPrograms.utf8))
@@ -84,7 +82,7 @@ import Testing
     @Test func optionalProgramFieldsMayBeAbsent() throws {
         let json = """
         {"now": "2026-08-29T20:15:03Z", "items": [
-          {"id": 1, "number": 1, "key": "mix", "name": "Mix", "kind": "mix", "programs": [
+          {"id": 1, "number": 1, "key": "mix", "name": "Mix", "programs": [
             {"id": 5, "starts_at": "2026-08-29T20:00:00Z", "ends_at": "2026-08-29T21:00:00Z",
              "item": {"id": 9, "kind": "movie", "title": "Solaris"}}
           ]}

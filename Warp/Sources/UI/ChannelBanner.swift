@@ -35,7 +35,7 @@ struct ChannelBanner: View {
         .padding(.bottom, TVLayout.verticalMargin)
     }
 
-    private var thread: Color { channelThread(channel.kind) }
+    private var thread: Color { channelThread(channel.key) }
 
     private var number: some View {
         VStack(spacing: 6) {
