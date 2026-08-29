@@ -25,6 +25,11 @@ struct GuideView: View {
     // The lineup no longer fits 1080 points, so the rows scroll vertically
     // (the ruler stays put above them).
     private static let rowHeight: CGFloat = 84
+    /// The guide is a full-screen grid, so it hugs the safe area (already
+    /// 90 pt sides and 60 pt top/bottom on tvOS) rather than adding the
+    /// banner's `TVLayout.sideMargin` on top of it.
+    private static let horizontalMargin: CGFloat = 16
+    private static let verticalMargin: CGFloat = 12
     private static let rowSpacing: CGFloat = 8
     private static let headerWidth: CGFloat = 300
     private static let columnSpacing: CGFloat = 14
@@ -73,7 +78,7 @@ struct GuideView: View {
             // layout out to 23,000 points, so measure the screen once and
             // hand the widths down.
             GeometryReader { geometry in
-                let width = geometry.size.width - 2 * TVLayout.sideMargin
+                let width = geometry.size.width - 2 * Self.horizontalMargin
                 let gridWidth = width - Self.headerWidth - Self.columnSpacing
                 VStack(alignment: .leading, spacing: 10) {
                     header
@@ -100,8 +105,8 @@ struct GuideView: View {
                     }
                 }
                 .frame(width: width)
-                .padding(.horizontal, TVLayout.sideMargin)
-                .padding(.vertical, 40)
+                .padding(.horizontal, Self.horizontalMargin)
+                .padding(.vertical, Self.verticalMargin)
             }
         }
         .onAppear {
