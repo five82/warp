@@ -9,7 +9,7 @@ This file provides guidance when working with code in this repository.
 - One app target, tvOS only. There is no iOS code and no `#if os(iOS)` anywhere; keep it that way.
 - Build with the Xcode beta toolchain (`DEVELOPER_DIR=/Applications/Xcode-beta.app`) - the physical Apple TV and the simulator both run the tvOS 27 beta.
 - The real Loom (`http://10.100.90.20:8097`) serves `GET /api/v1/channels` and is the default for everything. `scripts/mock-loom.py` is kept only for developing against a channels-API change that is not deployed yet, and for a deterministic lineup in simulator screenshot checks (see Mock Loom).
-- Remote: Up/Down flip, Select guide, Play/Pause the player panel (the banner with the CC switch), Left/Right banner, Menu close-else-exit (`TunerView`).
+- Remote: Up/Down flip, Select guide, Play/Pause toggle captions (the banner shows the CC badge), Left/Right banner, Menu close-else-exit (`TunerView`).
 - Debug launch arguments: `-server <address>`, `-channel <number>`, `-guide` (open the guide on launch), `-freeze` (stop the displayed clock for screenshots), `-surf <n>` (auto-flip channels every 8 s, n times, logging each - the unattended latency run on the physical box).
 - Video playback works in the tvOS simulator for H.264/HEVC only. AV1 crashes the simulator's Metal driver during frame upload. The mock's HDR and Mix channels land on AV1 titles, so simulator checks must use `-channel` to pick a show channel (1-4 are H.264/HEVC).
 

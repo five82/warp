@@ -1,17 +1,16 @@
 import OSLog
 import SwiftUI
 
-/// The app's home: full-screen video with the channel banner, the player
-/// panel, and the guide as overlays. It launches straight into the last
-/// channel; there are no transport controls, because a channel has no
-/// transport. The panel is the banner with a captions switch.
+/// The app's home: full-screen video with the channel banner and the guide
+/// as overlays. It launches straight into the last channel; there are no
+/// transport controls, because a channel has no transport.
 ///
 /// Remote grammar (docs/proposal.md 4.3):
-///   Up/Down      channel +/-, wrapping (also from the panel)
-///   Select       toggle the guide; in the panel, toggle captions
+///   Up/Down      channel +/-, wrapping
+///   Select       toggle the guide
 ///   Left/Right   show the banner
-///   Play/Pause   toggle the player panel
-///   Menu         close the guide or panel, else leave the app
+///   Play/Pause   toggle captions (the banner shows the CC badge lit or dim)
+///   Menu         close the guide, else leave the app
 struct TunerView: View {
     let client: LoomClient
     let options: LaunchOptions
@@ -21,8 +20,6 @@ struct TunerView: View {
     @State private var tuner: Tuner
     @State private var guideVisible: Bool
     @State private var bannerVisible = true
-    /// The player panel: the banner held open with the captions switch.
-    @State private var panelVisible = false
     @State private var captions = Captions.load()
     /// Any interaction bumps this; the banner's auto-hide countdown restarts.
     @State private var bannerTick = 0
@@ -74,17 +71,17 @@ struct TunerView: View {
                 }
             }
 
-            if !guideVisible, !panelVisible {
+            if !guideVisible {
                 remoteCatcher
             }
 
-            if bannerVisible || panelVisible, !guideVisible, let channel = tuner.channel {
+            if bannerVisible, !guideVisible, let channel = tuner.channel {
                 ChannelBanner(
                     channel: channel,
                     program: tuner.current,
                     next: tuner.next,
                     now: tuner.serverNow,
-                    captions: panelVisible ? captionsControl : nil
+                    captionsEnabled: captions.enabled
                 )
                 .transition(.opacity)
             }
@@ -113,10 +110,10 @@ struct TunerView: View {
                 }
             }
         }
-        // Menu closes whichever overlay is open; with no handler installed the
-        // system default (leave the app) runs, which is what tvOS expects.
-        .onExitCommand(perform: guideVisible || panelVisible ? { closeOverlays() } : nil)
-        .onPlayPauseCommand { togglePanel() }
+        // Menu closes the guide; with no handler installed the system default
+        // (leave the app) runs, which is what tvOS expects.
+        .onExitCommand(perform: guideVisible ? { closeGuide() } : nil)
+        .onPlayPauseCommand { toggleCaptions() }
         .task {
             tuner.attach(host.controller)
             host.controller.setCaptions(enabled: captions.enabled)
@@ -193,17 +190,13 @@ struct TunerView: View {
         }
     }
 
-    private var captionsControl: CaptionsControl {
-        CaptionsControl(
-            enabled: captions.enabled,
-            toggle: {
-                captions.enabled.toggle()
-                captions.store()
-                host.controller.setCaptions(enabled: captions.enabled)
-            },
-            channelUp: { tuner.channelUp() },
-            channelDown: { tuner.channelDown() }
-        )
+    /// One global CC switch, persisted. The banner comes up so the badge
+    /// confirms the new state.
+    private func toggleCaptions() {
+        captions.enabled.toggle()
+        captions.store()
+        host.controller.setCaptions(enabled: captions.enabled)
+        showBanner()
     }
 
     private func showBanner() {
@@ -213,22 +206,6 @@ struct TunerView: View {
 
     private func closeGuide() {
         withAnimation(.easeInOut(duration: 0.2)) { guideVisible = false }
-        showBanner()
-    }
-
-    private func togglePanel() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            guideVisible = false
-            panelVisible.toggle()
-        }
-        if !panelVisible { showBanner() }
-    }
-
-    private func closeOverlays() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            guideVisible = false
-            panelVisible = false
-        }
         showBanner()
     }
 }

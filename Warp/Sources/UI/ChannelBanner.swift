@@ -1,20 +1,16 @@
 import SwiftUI
 
 /// The flip banner: channel number and name, what is on, how far through the
-/// block we are, what is next, and the picture's badges. Shows on every flip
-/// and on Left/Right, then auto-hides.
-///
-/// Play/Pause opens the same banner as the player panel: `captions` is set,
-/// a CC pill takes focus, and it stays until Menu or Play/Pause closes it. A
-/// channel has no transport, so this is the whole of the player controls.
+/// block we are, what is next, and the picture's badges. Shows on every flip,
+/// on Left/Right, and on a captions toggle, then auto-hides. The CC badge is
+/// lit in the channel's colour when captions are on and dim when off; it is
+/// the only indication of the global switch, so it is always drawn.
 struct ChannelBanner: View {
     let channel: Channel
     let program: Program?
     let next: Program?
     let now: Date
-    var captions: CaptionsControl?
-
-    @FocusState private var captionsFocused: Bool
+    let captionsEnabled: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -69,6 +65,7 @@ struct ChannelBanner: View {
                     ForEach(videoBadges(program.video), id: \.self) { badge in
                         TechBadge(text: badge, color: badge == "HDR" || badge == "DV" ? .amber : .muted)
                     }
+                    TechBadge(text: "CC", color: captionsEnabled ? thread : .faint)
                 }
                 ThreadProgress(fraction: blockFraction(program, at: now), color: thread)
                     .frame(width: 700)
@@ -85,34 +82,7 @@ struct ChannelBanner: View {
                     .font(.titleLarge)
                     .foregroundStyle(Color.ink)
             }
-            if let captions {
-                controls(captions)
-            }
         }
-    }
-
-    private func controls(_ captions: CaptionsControl) -> some View {
-        HStack(spacing: 16) {
-            Button(action: captions.toggle) {
-                HStack(spacing: 10) {
-                    TechBadge(text: "CC", color: captions.enabled ? thread : .muted)
-                    Text(captions.enabled ? "Captions on" : "Captions off")
-                }
-            }
-            .buttonStyle(TVPillButtonStyle())
-            .focused($captionsFocused)
-            // The pill is the only focusable thing on screen while the panel
-            // is up; Up/Down keep flipping channels from it.
-            .onMoveCommand { direction in
-                switch direction {
-                case .up: captions.channelUp()
-                case .down: captions.channelDown()
-                default: break
-                }
-            }
-        }
-        .padding(.top, 14)
-        .onAppear { captionsFocused = true }
     }
 
     private var nextDetail: String {
@@ -129,15 +99,6 @@ struct ChannelBanner: View {
             .frame(width: 300, height: 169)
             .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-}
-
-/// What the panel needs from the tuner: the CC state and the three presses it
-/// handles itself.
-struct CaptionsControl {
-    var enabled: Bool
-    var toggle: () -> Void
-    var channelUp: () -> Void
-    var channelDown: () -> Void
 }
 
 /// Artwork for a program: an episode's still, else the backdrop, else the
