@@ -1,0 +1,112 @@
+name: Warp
+options:
+  bundleIdPrefix: xyz.five82
+  deploymentTarget:
+    # The physical Apple TV runs the tvOS 27 beta, matching the simulator runtime.
+    tvOS: "27.0"
+  createIntermediateGroups: true
+
+# Vendored MPVKit 0.41.0 with a locally built, live-resize-patched Libmpv and a
+# Libavfilter rebuilt with extra filters. Copied from Takeup; Frameworks/ is
+# gitignored (scripts/build-libmpv.sh rebuilds it).
+packages:
+  MPVKit:
+    path: Vendor/MPVKit
+
+schemes:
+  Warp:
+    build:
+      targets:
+        Warp: all
+    run:
+      config: Debug
+      # MoltenVK HDR passthrough trips Metal API validation (MoltenVK#2226).
+      metalAPIValidation: false
+    test:
+      config: Debug
+      targets:
+        - WarpTests
+  # The headless remote driver lives in its own scheme so `xcodebuild test` on
+  # the Warp scheme runs the unit bundle and never sits waiting for commands.
+  # Drive it through scripts/tv-driver.sh, not a bare `xcodebuild test`.
+  WarpTVDriver:
+    build:
+      targets:
+        Warp: all
+        WarpTVDriver: [test]
+    run:
+      config: Debug
+      metalAPIValidation: false
+    test:
+      config: Debug
+      targets:
+        - WarpTVDriver
+
+targets:
+  Warp:
+    type: application
+    platform: tvOS
+    sources:
+      - Warp
+    dependencies:
+      - package: MPVKit
+        product: MPVKit
+      # UIWindow.avDisplayManager is an AVKit category reached through
+      # objc_msgSend, so nothing in the app pulls AVKit in on its own; without
+      # an explicit link the category is never loaded and the display pin is
+      # silently skipped on the box.
+      - sdk: AVKit.framework
+      - sdk: AVFoundation.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: xyz.five82.warp
+        DEVELOPMENT_TEAM: G539654RSK
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "3"
+        # tvOS icons are layered brand assets, not a plain appiconset.
+        ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
+        SWIFT_VERSION: "5.0"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.1.0
+        ENABLE_USER_SCRIPT_SANDBOXING: true
+    info:
+      path: Warp/Info.plist
+      properties:
+        CFBundleDisplayName: Warp
+        LSApplicationCategoryType: public.app-category.entertainment
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          # Loom is trusted-LAN cleartext HTTP; ATS needs the carve-out.
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Warp connects to your Loom media server on the local network.
+        NSBonjourServices:
+          - _loom._tcp
+  WarpTVDriver:
+    type: bundle.ui-testing
+    platform: tvOS
+    sources:
+      - WarpTVDriver
+    dependencies:
+      - target: Warp
+    settings:
+      base:
+        DEVELOPMENT_TEAM: G539654RSK
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "3"
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: true
+  WarpTests:
+    type: bundle.unit-test
+    platform: tvOS
+    sources:
+      - WarpTests
+    dependencies:
+      - target: Warp
+    settings:
+      base:
+        DEVELOPMENT_TEAM: G539654RSK
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "3"
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: true

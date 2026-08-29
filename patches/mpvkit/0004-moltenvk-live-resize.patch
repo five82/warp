@@ -1,0 +1,45 @@
+diff --git a/video/out/vulkan/context_moltenvk.m b/video/out/vulkan/context_moltenvk.m
+index 445b907..cc7a1a3 100644
+--- a/video/out/vulkan/context_moltenvk.m
++++ b/video/out/vulkan/context_moltenvk.m
+@@ -26,6 +26,7 @@
+ struct priv {
+     struct mpvk_ctx vk;
+     CAMetalLayer *layer;
++    int last_w, last_h;
+ };
+ 
+ static void moltenvk_uninit(struct ra_ctx *ctx)
+@@ -77,12 +78,31 @@ static bool moltenvk_reconfig(struct ra_ctx *ctx)
+ {
+     struct priv *p = ctx->priv;
+     CGSize s = p->layer.drawableSize;
+-    ra_vk_ctx_resize(ctx, s.width, s.height);
++    p->last_w = (int)s.width;
++    p->last_h = (int)s.height;
++    ra_vk_ctx_resize(ctx, p->last_w, p->last_h);
+     return true;
+ }
+ 
+ static int moltenvk_control(struct ra_ctx *ctx, int *events, int request, void *arg)
+ {
++    struct priv *p = ctx->priv;
++    switch (request) {
++    case VOCTRL_CHECK_EVENTS: {
++        // Live resize: the layer's drawableSize is owned by the embedding
++        // app. Poll it once per event cycle and resize the swapchain when
++        // it changes, like desktop windowing backends do.
++        CGSize s = p->layer.drawableSize;
++        int w = (int)s.width, h = (int)s.height;
++        if (w > 1 && h > 1 && (w != p->last_w || h != p->last_h)) {
++            p->last_w = w;
++            p->last_h = h;
++            ra_vk_ctx_resize(ctx, w, h);
++            *events |= VO_EVENT_RESIZE;
++        }
++        return VO_TRUE;
++    }
++    }
+     return VO_NOTIMPL;
+ }
+ 
