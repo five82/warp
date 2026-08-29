@@ -31,7 +31,7 @@ struct GuideView: View {
     private static let horizontalMargin: CGFloat = 16
     private static let verticalMargin: CGFloat = 12
     private static let rowSpacing: CGFloat = 8
-    private static let headerWidth: CGFloat = 300
+    private static let headerWidth: CGFloat = 380
     private static let columnSpacing: CGFloat = 14
     private static let rulerHeight: CGFloat = 30
     private static let cellSpacing: CGFloat = 6
@@ -155,19 +155,29 @@ struct GuideView: View {
     }
 
     /// Fixed row headings beside the scrolling grid, so a channel's identity
-    /// never scrolls away.
+    /// never scrolls away. Under the name is what the channel is playing:
+    /// programs do not start on the half hour, so the first cell in the
+    /// grid is often too narrow to read.
     private var channelColumn: some View {
         VStack(alignment: .leading, spacing: Self.rowSpacing) {
             ForEach(lineup.channels) { channel in
-                HStack(spacing: 16) {
+                HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(String(channel.number))
                         .font(.titleMedium.monospacedDigit())
                         .foregroundStyle(channelThread(channel.key))
                         .frame(width: 54, alignment: .trailing)
-                    Text(channel.name)
-                        .font(.titleSmall)
-                        .foregroundStyle(channel.number == currentNumber ? Color.ink : Color.muted)
-                        .lineLimit(2)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(channel.name)
+                            .font(.titleSmall)
+                            .foregroundStyle(channel.number == currentNumber ? Color.ink : Color.muted)
+                            .lineLimit(1)
+                        if let program = channel.programs.last(where: { $0.contains(origin) }) {
+                            Text(guideCellTitle(program.item, singleSeries: channel.isSingleSeries))
+                                .font(.bodySmall)
+                                .foregroundStyle(Color.faint)
+                                .lineLimit(1)
+                        }
+                    }
                     Spacer(minLength: 0)
                 }
                 .frame(width: Self.headerWidth, height: Self.rowHeight, alignment: .leading)
