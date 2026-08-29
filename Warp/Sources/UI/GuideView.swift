@@ -11,40 +11,74 @@ struct GuideView: View {
     let onSelect: (Int) -> Void
     let onSettings: () -> Void
 
-    /// Points per minute. A 22-minute episode is 176pt wide, a 2-hour film
-    /// 960pt, so a row reads as time rather than as a list.
-    private static let pointsPerMinute: CGFloat = 8
-    // Ten channels plus the ruler and the header have to fit 1080 points
-    // without scrolling vertically; the POC lineup is exactly ten.
-    private static let rowHeight: CGFloat = 72
+    /// Points per minute. A 22-minute episode is 352pt wide, enough for its
+    /// title and "S16E3 · Episode Name" on the second line; the grid shows
+    /// about 90 minutes at a time, the window a cable guide uses.
+    private static let pointsPerMinute: CGFloat = 16
+    // The lineup no longer fits 1080 points, so the rows scroll vertically
+    // (the ruler stays put above them).
+    private static let rowHeight: CGFloat = 84
+    private static let rowSpacing: CGFloat = 8
     private static let headerWidth: CGFloat = 300
+    private static let columnSpacing: CGFloat = 14
+    private static let rulerHeight: CGFloat = 30
+    /// The first visible program is clipped by the origin; keep enough of it
+    /// to read a title.
+    private static let minimumCellWidth: CGFloat = 160
 
     // Focus is per program cell; the guide opens on what is on now on the
     // current channel.
     @FocusState private var focusedProgram: Int64?
+    /// The grid's horizontal scroll offset, mirrored onto the ruler so the
+    /// ticks stay over their columns while the rows scroll both ways.
+    @State private var gridOffset: CGFloat = 0
 
     var body: some View {
         ZStack {
             Color.stage.opacity(0.93).ignoresSafeArea()
-            VStack(alignment: .leading, spacing: 10) {
-                header
-                HStack(alignment: .top, spacing: 14) {
-                    channelColumn
-                    ScrollView(.horizontal) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ruler
-                            ForEach(lineup.channels) { channel in
-                                row(for: channel)
-                            }
-                        }
-                        .padding(.trailing, 60)
+            // The ruler and the rows are 24 hours wide; every container they
+            // sit in needs an explicit width or their ideal width blows the
+            // layout out to 23,000 points, so measure the screen once and
+            // hand the widths down.
+            GeometryReader { geometry in
+                let width = geometry.size.width - 2 * TVLayout.sideMargin
+                let gridWidth = width - Self.headerWidth - Self.columnSpacing
+                VStack(alignment: .leading, spacing: 10) {
+                    header
+                    HStack(spacing: Self.columnSpacing) {
+                        Color.clear.frame(width: Self.headerWidth, height: Self.rulerHeight)
+                        ruler(width: gridWidth)
                     }
-                    .scrollClipDisabled()
+                    ScrollView(.vertical) {
+                        HStack(alignment: .top, spacing: Self.columnSpacing) {
+                            channelColumn
+                            ScrollView(.horizontal) {
+                                VStack(alignment: .leading, spacing: Self.rowSpacing) {
+                                    ForEach(lineup.channels) { channel in
+                                        row(for: channel)
+                                    }
+                                }
+                                .padding(.trailing, 60)
+                            }
+                            // Clipped, or cells scrolled off the left draw
+                            // over the channel column; the margin keeps the
+                            // focus ring of the first column inside the clip.
+                            .contentMargins(.leading, 4)
+                            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                                geometry.contentOffset.x
+                            } action: { _, offset in
+                                gridOffset = offset
+                            }
+                            .frame(width: gridWidth)
+                        }
+                        // Room for the focus ring on the first and last rows.
+                        .padding(.vertical, 4)
+                    }
                 }
-                Spacer(minLength: 0)
+                .frame(width: width)
+                .padding(.horizontal, TVLayout.sideMargin)
+                .padding(.vertical, 40)
             }
-            .padding(.horizontal, TVLayout.sideMargin)
-            .padding(.vertical, 40)
         }
         .onAppear {
             focusedProgram = lineup.channel(number: currentNumber)?.program(at: now)?.id
@@ -69,11 +103,7 @@ struct GuideView: View {
     /// Fixed row headings beside the scrolling grid, so a channel's identity
     /// never scrolls away.
     private var channelColumn: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Lines up with the ruler above the first row. The width matters:
-            // an unsized Color is horizontally flexible, and the HStack would
-            // then split the screen between this column and the grid.
-            Color.clear.frame(width: Self.headerWidth, height: 30)
+        VStack(alignment: .leading, spacing: Self.rowSpacing) {
             ForEach(lineup.channels) { channel in
                 HStack(spacing: 16) {
                     Text(String(channel.number))
@@ -92,8 +122,8 @@ struct GuideView: View {
         .frame(width: Self.headerWidth)
     }
 
-    /// Half-hour ticks from the guide's origin.
-    private var ruler: some View {
+    /// Half-hour ticks from the guide's origin, shifted to follow the grid.
+    private func ruler(width: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(0..<48, id: \.self) { index in
                 let moment = origin.addingTimeInterval(Double(index) * 1800)
@@ -103,7 +133,9 @@ struct GuideView: View {
                     .frame(width: 30 * Self.pointsPerMinute, alignment: .leading)
             }
         }
-        .frame(height: 30)
+        .offset(x: -gridOffset)
+        .frame(width: width, height: Self.rulerHeight, alignment: .leading)
+        .clipped()
     }
 
     /// The grid starts at the current half hour so the columns line up with
@@ -115,6 +147,7 @@ struct GuideView: View {
 
     private func row(for channel: Channel) -> some View {
         let accent = channelThread(channel.key)
+        let singleSeries = channel.isSingleSeries
         let visible = channel.programs.filter { $0.endsAt > origin }
         return HStack(spacing: 6) {
             ForEach(visible) { program in
@@ -122,11 +155,11 @@ struct GuideView: View {
                     onSelect(channel.number)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(programTitle(program.item))
+                        Text(guideCellTitle(program.item, singleSeries: singleSeries))
                             .font(.titleSmall)
                             .foregroundStyle(Color.ink)
                             .lineLimit(1)
-                        if let subtitle = programSubtitle(program.item) {
+                        if let subtitle = guideCellSubtitle(program.item, singleSeries: singleSeries) {
                             Text(subtitle)
                                 .font(.bodySmall)
                                 .foregroundStyle(Color.muted)
@@ -146,6 +179,6 @@ struct GuideView: View {
     private func width(of program: Program) -> CGFloat {
         let start = max(program.startsAt, origin)
         let minutes = program.endsAt.timeIntervalSince(start) / 60
-        return max(CGFloat(minutes) * Self.pointsPerMinute, 120)
+        return max(CGFloat(minutes) * Self.pointsPerMinute, Self.minimumCellWidth)
     }
 }
