@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 /// The app's home: full-screen video with the channel banner, the player
@@ -27,6 +28,11 @@ struct TunerView: View {
     @State private var bannerTick = 0
     /// Redraws the banner's progress bar and the guide's clock once a second.
     @State private var clockTick = Date()
+    /// When Select asked for the guide; `warp.guide` logs the time to the
+    /// frame that shows it.
+    @State private var guideRequestedAt: ContinuousClock.Instant?
+
+    private static let log = Logger(subsystem: "xyz.five82.warp", category: "guide")
 
     init(client: LoomClient, options: LaunchOptions, openSettings: @escaping () -> Void) {
         self.client = client
@@ -95,6 +101,16 @@ struct TunerView: View {
                     onSettings: openSettings
                 )
                 .transition(.opacity)
+                .onAppear {
+                    guard let requested = guideRequestedAt else { return }
+                    guideRequestedAt = nil
+                    // Runs after this transaction's frame commits, so it
+                    // measures press-to-guide-on-screen, layout included.
+                    DispatchQueue.main.async {
+                        let ms = (ContinuousClock.now - requested) / .milliseconds(1)
+                        Self.log.info("\(String(format: "warp.guide %.0f ms", ms), privacy: .public)")
+                    }
+                }
             }
         }
         // Menu closes whichever overlay is open; with no handler installed the
@@ -136,6 +152,7 @@ struct TunerView: View {
     /// the focus engine needs somewhere to stand.
     private var remoteCatcher: some View {
         Button {
+            guideRequestedAt = .now
             withAnimation(.easeInOut(duration: 0.2)) { guideVisible = true }
         } label: {
             Color.clear

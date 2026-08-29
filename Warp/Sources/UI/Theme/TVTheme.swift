@@ -92,34 +92,3 @@ struct TVInvisibleButtonStyle: ButtonStyle {
     }
 }
 
-/// Focus-aware guide cell: a program block in the grid.
-struct TVGuideCellStyle: ButtonStyle {
-    var accent: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        CellLabel(configuration: configuration, accent: accent)
-    }
-
-    private struct CellLabel: View {
-        @Environment(\.isFocused) private var focused
-        let configuration: Configuration
-        let accent: Color
-
-        var body: some View {
-            configuration.label
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .background(
-                    focused ? accent.opacity(0.32) : Color.surface1.opacity(0.85),
-                    in: RoundedRectangle(cornerRadius: 12)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(focused ? accent : Color.line, lineWidth: focused ? 3 : 1)
-                )
-                .scaleEffect(configuration.isPressed ? 0.98 : 1)
-                .animation(.easeOut(duration: 0.12), value: focused)
-        }
-    }
-}
