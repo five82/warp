@@ -67,6 +67,24 @@ import Testing
         #expect(programSubtitle(orphan) == "S1E1")
     }
 
+    /// The guide's row label already names the show on a single-series
+    /// channel, so its cells lead with the episode title; a mixed channel
+    /// keeps the show first.
+    @Test func guideCellsDropTheShowOnASingleSeriesChannel() {
+        let episode = makeItem(
+            id: 1, kind: "episode", title: "Faith Hilling",
+            season: 16, episode: 3, seriesTitle: "South Park"
+        )
+        #expect(guideCellTitle(episode, singleSeries: true) == "Faith Hilling")
+        #expect(guideCellSubtitle(episode, singleSeries: true) == "S16E3")
+        #expect(guideCellTitle(episode, singleSeries: false) == "South Park")
+        #expect(guideCellSubtitle(episode, singleSeries: false) == "S16E3 \u{00B7} Faith Hilling")
+
+        let movie = makeItem(id: 2, kind: "movie", title: "Solaris", year: 1972)
+        #expect(guideCellTitle(movie, singleSeries: true) == "Solaris")
+        #expect(guideCellSubtitle(movie, singleSeries: true) == "1972")
+    }
+
     @Test func badgesReadResolutionThenRange() {
         #expect(videoBadges(VideoSummary(codec: "hevc", width: 3840, height: 2160, resolution: "4k", dynamicRange: "hdr")) == ["4K", "HDR"])
         #expect(videoBadges(VideoSummary(codec: "h264", width: 1920, height: 1080, resolution: "1080p", dynamicRange: "sdr")) == ["1080p"])
@@ -87,5 +105,41 @@ import Testing
         let program = makeProgram(id: 1, start: start, minutes: 45)
         let utc = try! #require(TimeZone(identifier: "UTC"))
         #expect(programTimeRange(program, timeZone: utc, locale: Locale(identifier: "en_US")) == "8:00 PM \u{2013} 8:45 PM")
+    }
+}
+
+@Suite struct SingleSeriesTests {
+    let start = Date(timeIntervalSinceReferenceDate: 0)
+
+    func channel(_ items: [Item]) -> Channel {
+        let programs = items.enumerated().map { index, item in
+            makeProgram(id: Int64(index + 1), start: start.addingTimeInterval(Double(index) * 1800), minutes: 30, item: item)
+        }
+        return Channel(id: 1, number: 1, key: "test", name: "Test", programs: programs)
+    }
+
+    @Test func aChannelOfOneShowIsSingleSeries() {
+        let episodes = (1...3).map {
+            makeItem(id: Int64($0), kind: "episode", title: "Episode \($0)", season: 1, episode: $0, seriesTitle: "South Park")
+        }
+        #expect(channel(episodes).isSingleSeries)
+    }
+
+    @Test func mixedShowsAndMoviesAreNot() {
+        let office = makeItem(id: 1, kind: "episode", title: "Pilot", season: 1, episode: 1, seriesTitle: "The Office")
+        let parks = makeItem(id: 2, kind: "episode", title: "Pilot", season: 1, episode: 1, seriesTitle: "Parks and Recreation")
+        #expect(!channel([office, parks]).isSingleSeries)
+
+        let movie = makeItem(id: 3, kind: "movie", title: "Solaris", year: 1972)
+        #expect(!channel([office, movie]).isSingleSeries)
+        #expect(!channel([movie]).isSingleSeries)
+    }
+
+    /// Without a series_title there is no show name to drop, and the cell
+    /// already leads with the episode title.
+    @Test func episodesWithoutASeriesTitleAreNot() {
+        let orphan = makeItem(id: 1, kind: "episode", title: "Pilot", season: 1, episode: 1)
+        #expect(!channel([orphan]).isSingleSeries)
+        #expect(!channel([]).isSingleSeries)
     }
 }

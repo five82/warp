@@ -192,6 +192,17 @@ struct Channel: Codable, Identifiable, Hashable {
         self.programs = programs
     }
 
+    /// Whether every program on this channel is an episode of the same show
+    /// (South Park, MWC Shuffle). Derived from the schedule rather than sent
+    /// by Loom: the guide only cares that the show's name would repeat on
+    /// every cell of the row, and that is exactly this condition.
+    var isSingleSeries: Bool {
+        guard let first = programs.first?.item,
+              first.kind == "episode",
+              let series = first.seriesTitle, !series.isEmpty else { return false }
+        return programs.allSatisfy { $0.item.kind == "episode" && $0.item.seriesTitle == series }
+    }
+
     /// What is on at `moment`, or nil if the schedule has a hole there.
     func program(at moment: Date) -> Program? {
         programs.last { $0.contains(moment) }

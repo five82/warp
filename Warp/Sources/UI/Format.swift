@@ -74,6 +74,19 @@ func programSubtitle(_ item: Item) -> String? {
     return nil
 }
 
+/// A guide cell's heading. On a single-series channel the row label already
+/// names the show, so the cell leads with the episode's own title instead of
+/// repeating the series on every block.
+func guideCellTitle(_ item: Item, singleSeries: Bool) -> String {
+    singleSeries && item.kind == "episode" ? item.title : programTitle(item)
+}
+
+/// The line beneath: just "S16E3" on a single-series channel, since the
+/// episode title is the heading there.
+func guideCellSubtitle(_ item: Item, singleSeries: Bool) -> String? {
+    singleSeries && item.kind == "episode" ? episodeLabel(item) : programSubtitle(item)
+}
+
 func resolutionBadge(_ resolution: String?) -> String? {
     switch resolution {
     case "4k": "4K"
