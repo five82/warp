@@ -9,6 +9,7 @@ This file provides guidance when working with code in this repository.
 - One app target, tvOS only. There is no iOS code and no `#if os(iOS)` anywhere; keep it that way.
 - Build with the Xcode beta toolchain (`DEVELOPER_DIR=/Applications/Xcode-beta.app`) - the physical Apple TV and the simulator both run the tvOS 27 beta.
 - The real Loom (`http://10.100.90.20:8097`) serves `GET /api/v1/channels` and is the default for everything. `scripts/mock-loom.py` is kept only for developing against a channels-API change that is not deployed yet, and for a deterministic lineup in simulator screenshot checks (see Mock Loom).
+- Remote: Up/Down flip, Select guide, Play/Pause the player panel (the banner with the CC switch), Left/Right banner, Menu close-else-exit (`TunerView`).
 - Debug launch arguments: `-server <address>`, `-channel <number>`, `-guide` (open the guide on launch), `-freeze` (stop the displayed clock for screenshots), `-surf <n>` (auto-flip channels every 8 s, n times, logging each - the unattended latency run on the physical box).
 - Video playback works in the tvOS simulator for H.264/HEVC only. AV1 crashes the simulator's Metal driver during frame upload. The mock's HDR and Mix channels land on AV1 titles, so simulator checks must use `-channel` to pick a show channel (1-4 are H.264/HEVC).
 
@@ -22,7 +23,7 @@ Single-developer hobby project - prefer simple, maintainable solutions over clev
 
 Loom serves original files directly with no transcoding and no authentication over trusted-LAN HTTP. AVPlayer cannot play this library (Matroska/Opus/PGS); MPVKit is a hard requirement.
 
-The code under `Warp/Sources/` is copied from `~/projects/takeup-ios` (`Shared/` and `TakeupTV/`), not shared by package or symlink - `docs/proposal.md` 4.1 lists what came across. Do not modify the Takeup repo from here. Warp has no subtitles, no progress reporting, no downloads, and no library browsing; those were dropped on the way over.
+The code under `Warp/Sources/` is copied from `~/projects/takeup-ios` (`Shared/` and `TakeupTV/`), not shared by package or symlink - `docs/proposal.md` 4.1 lists what came across. Do not modify the Takeup repo from here. Warp has no progress reporting, no downloads, and no library browsing; those were dropped on the way over. Captions are one global CC switch (`Captions`, persisted; mpv `sid` auto/no with `slang=eng`), not a per-program track picker - much of the show library has no subtitle track yet, while most 4K AV1 movies do (those are exactly the programs the simulator cannot play and the A12 gates).
 
 ### The three things Warp exists to prove
 
@@ -155,6 +156,7 @@ The three instrumented lines:
 
 - `warp.tune <ms> <url>` - milliseconds from `tune` to MPV_EVENT_PLAYBACK_RESTART (the first frame). This is the press-to-picture number.
 - `warp.surface colorspace=... pixelFormat=...` - logged once after the first frame. `kCGColorSpaceITUR_2100_PQ` proves the PQ negotiation took; `rgb10a2Unorm` (raw value 90) is the 10-bit surface.
+- `warp.captions sid=... subs=[id:lang,...]` - logged with every first frame: the subtitle tracks the program carries and which one mpv selected (`sid=no` with `subs=[]` is a program with no captions, not a broken switch).
 - `warp.display ...` - `isDisplayCriteriaMatchingEnabled` at launch, the pin itself, and every `AVDisplayManagerModeSwitchStart`/`End` notification with a timestamp. Any mode switch during a surf run means the pin is not holding.
 
 Baseline measured 2026-08-29 on the Living Room Apple TV (A12, mock Loom on the Mac, `device-surf.sh 12 4`): matching enabled, pinned HDR10 4K @60 Hz, exactly one modeSwitchStart/End at launch and none across 12 flips that crossed SDR -> 4K HDR HEVC -> SDR twice. `warp.tune` 449-782 ms for warm HEVC/H.264 flips (4K HDR HEVC 647-657 ms), 965 ms after the gated AV1 channels, 732 ms cold at launch; 1080p AV1 (dav1d software) 596-634 ms. Surface `kCGColorSpaceITUR_2100_PQ` / `rgb10a2Unorm` on the box.

@@ -307,10 +307,14 @@ Standalone repo, same toolchain as Takeup:
    `health()` succeeds. Straight from Takeup.
 2. **Tuner** (the app's home): full-screen video. On launch it tunes the
    last channel (UserDefaults) immediately. No transport controls.
-3. **Channel banner**: appears on every flip and on Select for a few
+3. **Channel banner**: appears on every flip and on Left/Right for a few
    seconds: channel number + name, program title and episode line,
    progress bar of the current block, "Next: ..." line, resolution/HDR
-   badge. Auto-hides.
+   badge. Auto-hides. Play/Pause opens the same banner as the **player
+   panel**: a focused captions switch (one global CC on/off, persisted;
+   mpv picks the English track per program, so it survives flips) and the
+   progress bar. It stays up until Menu or Play/Pause closes it; Up/Down
+   still flip channels from it. There is no other transport.
 4. **Guide**: overlay over the still-playing video. Rows = channels
    (current channel focused), columns = time from now, cells = programs.
    Select tunes, Menu closes. Horizontal scroll through the 24 h window.
@@ -320,10 +324,15 @@ Standalone repo, same toolchain as Takeup:
 ### 4.3 Remote grammar
 
 - Up/Down (swipe or click on the ring): channel +/-, wrapping.
-- Select: toggle the guide. Left/Right: show the banner (later: peek at
-  adjacent channels' banners without tuning).
-- Menu: close guide/banner if open, otherwise leave the app (standard
-  tvOS). Play/Pause: nothing (or reshow the banner).
+- Select: toggle the guide (in the player panel: toggle captions).
+  Left/Right: show the banner (later: peek at adjacent channels' banners
+  without tuning).
+- Play/Pause: toggle the player panel.
+- Menu: close guide/panel if open, otherwise leave the app (standard
+  tvOS). Menu never opens anything: a "Menu opens the guide, Menu again
+  exits" scheme was considered and rejected, since the second press would
+  also have to mean "close the guide", so every peek at the guide would
+  eject you from the app. Long-press Menu already goes Home.
 - No number entry (Siri remote has no keypad).
 
 ### 4.4 Clock and drift

@@ -152,6 +152,13 @@ final class MPVPlayerController: UIViewController {
         // Opens the appended next program while the current one drains.
         setOption("prefetch-playlist", "yes")
 
+        // Captions: `sid` is flipped between auto and no by setCaptions and,
+        // being an option, sticks for every later loadfile. English first when
+        // a file carries several; nothing is loaded from beside the file.
+        setOption("slang", "eng,en")
+        setOption("sub-auto", "no")
+        setOption("sid", "no")
+
         checkError(mpv_initialize(mpv))
 
         mpv_observe_property(mpv, 0, "time-pos", MPV_FORMAT_DOUBLE)
@@ -215,6 +222,13 @@ final class MPVPlayerController: UIViewController {
     func stop() {
         tuneStartedAt = nil
         command("stop")
+    }
+
+    /// Global CC switch. Setting the `sid` property changes the track playing
+    /// now and the option every later program is opened with.
+    func setCaptions(enabled: Bool) {
+        guard mpv != nil else { return }
+        mpv_set_property_string(mpv, "sid", enabled ? "auto" : "no")
     }
 
     func setPaused(_ paused: Bool) {
@@ -317,6 +331,7 @@ final class MPVPlayerController: UIViewController {
             // log. Both, so a measurement is never lost to the capture method.
             print(line)
         }
+        logCaptions()
         if !loggedSurfaceFormat {
             loggedSurfaceFormat = true
             DispatchQueue.main.async { [weak self] in
@@ -326,6 +341,23 @@ final class MPVPlayerController: UIViewController {
         DispatchQueue.main.async { [weak self] in
             self?.onPlaybackRestart?(path, milliseconds)
         }
+    }
+
+    /// Which subtitle track mpv landed on for this program, so the CC switch
+    /// can be checked from the log: `warp.captions sid=no subs=[1:eng]` or
+    /// `sid=1 subs=[1:eng] lang=eng codec=subrip`.
+    private func logCaptions() {
+        let sid = getString("sid") ?? "-"
+        let count = Int(getString("track-list/count") ?? "") ?? 0
+        let subs = (0..<count).filter { getString("track-list/\($0)/type") == "sub" }
+            .map { "\(getString("track-list/\($0)/id") ?? "?"):\(getString("track-list/\($0)/lang") ?? "-")" }
+        var line = "warp.captions sid=\(sid) subs=[\(subs.joined(separator: ","))]"
+        if sid != "no", sid != "auto" {
+            let lang = getString("current-tracks/sub/lang") ?? "-"
+            let codec = getString("current-tracks/sub/codec") ?? "-"
+            line += " lang=\(lang) codec=\(codec)"
+        }
+        Self.log.info("\(line, privacy: .public)")
     }
 
     /// Proof that the PQ negotiation actually took: mpv sets the layer's
