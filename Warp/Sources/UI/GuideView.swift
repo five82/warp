@@ -217,7 +217,12 @@ struct GuideView: View {
             }
         }
         .frame(width: width, alignment: .leading)
+        // Clip sideways only: the highlight stroke straddles the cell edge,
+        // so the first and last rows need room above and below (the
+        // leading padding in `row` does the same for the first column).
+        .padding(.vertical, 4)
         .clipped()
+        .padding(.vertical, -4)
         .onAppear { gridWidth = width }
         .onChange(of: width) { _, width in gridWidth = width }
     }
