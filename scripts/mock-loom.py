@@ -359,6 +359,10 @@ def build_lineup(loom, seed):
     show_title = {s["id"]: (s.get("title") or "") for s in shows}
     eps_by_show = {}
     for entry in episode_entries:
+        # Loom names the show on every channel episode (series_title), since
+        # the lineup hands episodes out outside their show hierarchy.
+        if show_title.get(entry.show_id):
+            entry.item_json["series_title"] = show_title[entry.show_id]
         eps_by_show.setdefault(entry.show_id, []).append(entry)
 
     genre_name = {}
