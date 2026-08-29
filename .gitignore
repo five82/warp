@@ -21,3 +21,8 @@ xcuserdata/
 # Swift Package Manager
 .build/
 .swiftpm/
+
+# Python (scripts/mock-loom.py)
+__pycache__/
+*.py[cod]
+.venv/
