@@ -95,6 +95,15 @@ struct VideoSummary: Codable, Hashable {
     let height: Int?
     let resolution: String?
     let dynamicRange: String?
+
+    /// Loom tags every HDR and Dolby Vision stream explicitly, so anything
+    /// else (including an unprobed stream) is SDR.
+    var isSDR: Bool {
+        switch dynamicRange {
+        case "hdr", "dolby_vision": return false
+        default: return true
+        }
+    }
 }
 
 /// One scheduled block on a channel.

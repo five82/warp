@@ -377,7 +377,8 @@ regenerated tail), the client re-tunes at the boundary.
 2. POC lineup of ~10 channels mixing TV, movies, SDR and HDR (section
    3.1); real content design later.
 3. Exact back-to-back programs.
-4. SDR white at 203 nits, adjust by eye on the box.
+4. SDR white at 203 nits, adjust by eye on the box. (Adjusted the same
+   day: 203 was too bright on the house TV, now 100.)
 5. Standalone repo; shared code is copied from Takeup, not packaged.
 6. 1080p AV1 is scheduled and plays (software decode is smooth on this
    box); only the 4K AV1 gate applies.

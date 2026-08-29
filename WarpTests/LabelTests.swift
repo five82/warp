@@ -71,6 +71,13 @@ import Testing
         #expect(videoBadges(VideoSummary(codec: "hevc", width: 3840, height: 2160, resolution: "4k", dynamicRange: "hdr")) == ["4K", "HDR"])
         #expect(videoBadges(VideoSummary(codec: "h264", width: 1920, height: 1080, resolution: "1080p", dynamicRange: "sdr")) == ["1080p"])
         #expect(videoBadges(VideoSummary(codec: "av1", width: 3840, height: 2160, resolution: "4k", dynamicRange: "dolby_vision")) == ["4K", "DV"])
+    }
+
+    @Test func sdrDetection() {
+        #expect(VideoSummary(codec: "h264", width: 1920, height: 1080, resolution: "1080p", dynamicRange: "sdr").isSDR)
+        #expect(VideoSummary(codec: "hevc", width: nil, height: nil, resolution: nil, dynamicRange: nil).isSDR)
+        #expect(!VideoSummary(codec: "hevc", width: 3840, height: 2160, resolution: "4k", dynamicRange: "hdr").isSDR)
+        #expect(!VideoSummary(codec: "av1", width: 3840, height: 2160, resolution: "4k", dynamicRange: "dolby_vision").isSDR)
         // No probed video stream at all.
         #expect(videoBadges(nil) == [])
     }

@@ -26,7 +26,7 @@ The code under `Warp/Sources/` is copied from `~/projects/takeup-ios` (`Shared/`
 
 ### The three things Warp exists to prove
 
-1. **Everything renders into one pinned PQ/BT.2020 surface** (`MPVPlayerController`). SDR sits in the HDR container at 203-nit reference white rather than being stretched; HDR10 passes through untouched because `target-peak=auto` on a PQ target is 10,000 nits, which collapses libplacebo's tone curve to identity.
+1. **Everything renders into one pinned PQ/BT.2020 surface** (`MPVPlayerController`). SDR sits in the HDR container at 100-nit reference white (`hdr-reference-white`; mpv's 203 default read as too bright on the house TV) rather than being stretched; HDR10 passes through untouched because `target-peak=auto` on a PQ target is 10,000 nits, which collapses libplacebo's tone curve to identity.
 2. **The display mode is pinned once at launch and never touched again** (`DisplayModePinner`). That is what stops the 1-8 second HDMI resync on every HDR/SDR boundary, which would otherwise fire on almost every channel flip.
 3. **A channel flip is one mpv command and no network round trip** (`Tuner`). The whole lineup is in memory; a flip is `loadfile <url> replace -1 start=<offset>` into a long-lived mpv core with `force-window=immediate` keeping the VO, Vulkan device, and swapchain alive.
 
@@ -175,7 +175,7 @@ Same day against the live Loom (`device-surf.sh 10 4`, after the channels deploy
 These are the point of the project and none of them can be checked from a terminal:
 
 - **HDR looks unchanged versus Takeup.** Same titles, same TV, side by side.
-- **SDR looks right in the PQ container.** 203-nit diffuse white is brighter than a 100-nit calibrated SDR mode, and libplacebo decodes BT.709 with BT.1886 (gamma ~2.4), which reads slightly punchier than TVs running SDR near 2.2. If SDR channels are too bright, `hdr-reference-white=100` in `MPVPlayerController` is a one-line change; `--gamma-factor` is the knob for the gamma.
+- **SDR looks right in the PQ container.** Reference white is 100 nits (calibrated SDR-mode level; 203 was too bright). libplacebo decodes BT.709 as BT.1886 (gamma ~2.4), which read contrastier than the TV's SDR mode, so SDR programs are retagged per file with `vf=format:gamma=gamma2.2` in `MPVPlayerController.perFileOptions` (a loadfile option, so it never touches an HDR program).
 - **No HDMI resync while surfing.** Flip repeatedly across an SDR/HDR boundary (channel 4 to channel 9, say) and watch for the black drop-out, especially through the AVR. `warp.display modeSwitch*` lines corroborate what the eye sees.
 - **Press-to-picture feels instant.** `warp.tune` gives the number; only the couch says whether it feels like a television.
 - **Memory over a long surf.** Nothing here watches for a leak in the long-lived mpv core.

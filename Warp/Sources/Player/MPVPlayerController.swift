@@ -106,7 +106,7 @@ final class MPVPlayerController: UIViewController {
 
         // Pinned PQ/BT.2020 output (docs/proposal.md 2.1). Everything is
         // rendered into the same HDR container so the swapchain hint and the
-        // layer colorspace never change on a flip; SDR sits in it at 203-nit
+        // layer colorspace never change on a flip; SDR sits in it at a fixed
         // reference white rather than being stretched.
         //
         // target-peak=auto is 10,000 nits on a PQ target, which exceeds any
@@ -120,7 +120,11 @@ final class MPVPlayerController: UIViewController {
         setOption("tone-mapping", "auto")
         setOption("inverse-tone-mapping", "no")
         setOption("hdr-compute-peak", "no")
-        setOption("hdr-reference-white", "203")
+        // SDR white at 100 nits: the calibrated SDR-mode level, so an SDR
+        // channel looks like the TV's own SDR picture. mpv's default of 203
+        // (the BT.2408 broadcast convention) read as too bright on the house
+        // TV (2026-08-29).
+        setOption("hdr-reference-white", "100")
 
         // Keep the VO, Vulkan device, and swapchain alive across loadfile and
         // across an empty playlist. Without force-window mpv tears the VO down
@@ -169,18 +173,37 @@ final class MPVPlayerController: UIViewController {
 
     /// Tune to a program: replace whatever is playing and land `startSeconds`
     /// in. One mpv command, no network round trip to Loom.
-    func tune(url: URL, startSeconds: Double) {
+    func tune(url: URL, startSeconds: Double, sdr: Bool) {
         tuneStartedAt = Self.monotonicSeconds
         // mpv >= 0.38 loadfile signature: url [flags [index [options]]]. The
         // index (-1 = append position, unused for "replace") must be present or
         // the options string is rejected and nothing loads.
-        command("loadfile", args: [url.absoluteString, "replace", "-1", "start=\(max(startSeconds, 0))"])
+        let options = ["start=\(max(startSeconds, 0))"] + Self.perFileOptions(sdr: sdr)
+        command("loadfile", args: [url.absoluteString, "replace", "-1", options.joined(separator: ",")])
     }
 
     /// Append the channel's next program so prefetch-playlist opens it while
     /// the current one drains; mpv crosses the boundary with no client work.
-    func queueNext(url: URL) {
-        command("loadfile", args: [url.absoluteString, "append"])
+    func queueNext(url: URL, sdr: Bool) {
+        let options = Self.perFileOptions(sdr: sdr)
+        if options.isEmpty {
+            command("loadfile", args: [url.absoluteString, "append"])
+        } else {
+            command("loadfile", args: [url.absoluteString, "append", "-1", options.joined(separator: ",")])
+        }
+    }
+
+    /// Options scoped to one playlist entry (mpv reverts them when the entry
+    /// ends), so a per-program choice never leaks into the next flip.
+    ///
+    /// SDR sources are retagged as a pure 2.2 power curve. libplacebo decodes
+    /// BT.709 as BT.1886 (about 2.4 with a black lift), which is the reference
+    /// EOTF but reads contrastier than the TV's own SDR mode, which runs a
+    /// plain 2.2 (observed 2026-08-29). `format` with only colorimetry tags
+    /// changes metadata, not pixels, so it works on VideoToolbox frames. HDR
+    /// sources keep their PQ tag untouched.
+    private static func perFileOptions(sdr: Bool) -> [String] {
+        sdr ? ["vf=format:gamma=gamma2.2"] : []
     }
 
     func clearQueue() {

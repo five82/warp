@@ -266,7 +266,7 @@ final class Tuner {
         }
         programIdForPath[url.absoluteString] = program.id
         playingProgramId = program.id
-        controller?.tune(url: url, startSeconds: program.offset(at: moment))
+        controller?.tune(url: url, startSeconds: program.offset(at: moment), sdr: program.video?.isSDR ?? true)
         // loadfile replace swaps the current entry but leaves anything already
         // appended behind it; clear before re-queuing so a flip can not inherit
         // the previous channel's next program.
@@ -286,7 +286,7 @@ final class Tuner {
         guard let path = following.streamUrl, let url = client.streamURL(path) else { return }
         programIdForPath[url.absoluteString] = following.id
         if queuedProgramId != nil { controller?.clearQueue() }
-        controller?.queueNext(url: url)
+        controller?.queueNext(url: url, sdr: following.video?.isSDR ?? true)
         queuedProgramId = following.id
     }
 
