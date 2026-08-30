@@ -47,6 +47,8 @@ WarpTVDriver/              the XCUIRemote driver "test" (see scripts/tv-driver.s
 Vendor/MPVKit/             vendored MPVKit; Frameworks/ is gitignored
 ```
 
+The app icon and top shelf images are generated, not drawn: `swift scripts/make-icon.swift` renders the Spectrum beam (two parallax layers per icon, flat top shelf images) straight into `Warp/Assets.xcassets`. Edit the script, not the PNGs.
+
 `Tuner` keeps its decisions in `TunerLogic`, a plain enum of pure functions, so the tests drive block boundaries, channel wrap, and the gate without mpv, a network, or a clock.
 
 ## Build
