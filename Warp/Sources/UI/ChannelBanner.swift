@@ -32,8 +32,14 @@ struct ChannelBanner: View {
             }
             .padding(.horizontal, 38)
             .padding(.vertical, 34)
-            .background(.ultraThinMaterial)
-            .background(Color.ground.opacity(0.55))
+            .background {
+                // The blur samples the video; the tint sits on top of it so
+                // the card stays dark whatever is playing underneath.
+                ZStack {
+                    Rectangle().fill(.ultraThinMaterial)
+                    Color.ground.opacity(0.78)
+                }
+            }
             .overlay(alignment: .top) { Ramp(height: 4) }
             .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
             .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius).stroke(Color.ink.opacity(0.06), lineWidth: 1))
@@ -67,13 +73,13 @@ struct ChannelBanner: View {
                 if let subtitle = programSubtitle(program.item) {
                     Text(subtitle)
                         .font(.bodyMedium)
-                        .foregroundStyle(Color.muted)
+                        .foregroundStyle(Color.chip)
                         .lineLimit(1)
                 }
                 HStack(spacing: 16) {
                     Text(programTimeRange(program))
                         .font(.labelMedium.monospacedDigit())
-                        .foregroundStyle(Color.muted)
+                        .foregroundStyle(Color.chip)
                     ForEach(videoBadges(program.video), id: \.self) { badge in
                         TechBadge(text: badge, color: badge == "HDR" || badge == "DV" ? .amber : .chip)
                     }
@@ -85,7 +91,7 @@ struct ChannelBanner: View {
                 if let next {
                     Text("Next \u{00B7} \(programTitle(next.item))\(nextDetail)")
                         .font(.bodySmall)
-                        .foregroundStyle(Color.faint)
+                        .foregroundStyle(Color.muted)
                         .lineLimit(1)
                         .padding(.top, 4)
                 }
