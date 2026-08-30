@@ -9,7 +9,7 @@ import Testing
     }
 
     @Test func anExplicitPortIsKept() {
-        #expect(AppEnvironment.normalize("10.100.90.134:8098")?.absoluteString == "http://10.100.90.134:8098")
+        #expect(AppEnvironment.normalize("loom.test:8098")?.absoluteString == "http://loom.test:8098")
     }
 
     /// An https name is already whole; adding :8097 would break it.
@@ -26,9 +26,9 @@ import Testing
 @Suite struct LaunchOptionsTests {
     @Test func parsesTheDebugFlags() {
         let options = LaunchOptions.parse([
-            "Warp", "-server", "http://10.100.90.134:8098", "-channel", "7", "-guide", "-freeze", "-surf", "12",
+            "Warp", "-server", "http://loom.test:8098", "-channel", "7", "-guide", "-freeze", "-surf", "12",
         ])
-        #expect(options.server == "http://10.100.90.134:8098")
+        #expect(options.server == "http://loom.test:8098")
         #expect(options.channel == 7)
         #expect(options.guideOpen)
         #expect(options.frozenClock)

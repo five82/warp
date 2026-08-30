@@ -9,18 +9,19 @@
 # The box must be AWAKE: a sleeping Apple TV refuses foreground app launches
 # and nothing on the network can wake it. Press a button on the remote first.
 #
-# Defaults to the real Loom. To measure against the mock instead, start
-# scripts/mock-loom.py and set WARP_SERVER=http://10.100.90.134:8098.
+# Loom is discovered over mDNS by default; set WARP_SERVER to override it
+# with an explicit server or a running mock's base URL.
 set -euo pipefail
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 FLIPS=${1:-12}
 CHANNEL=${2:-1}
 UDID=35085BEA-A61D-54EA-A44D-EABC64DC0EDF
-SERVER=${WARP_SERVER:-http://10.100.90.20:8097}
+SERVER=${WARP_SERVER:-$(python3 "$SCRIPT_DIR/loom_discovery.py")}
 LOG=/tmp/warp-device-console.log
 
 export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode-beta.app}
-cd "$(dirname "$0")/.."
+cd "$SCRIPT_DIR/.."
 
 xcodebuild -project Warp.xcodeproj -scheme Warp \
   -destination 'platform=tvOS,name=Living Room Apple TV' \

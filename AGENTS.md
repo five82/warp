@@ -43,7 +43,7 @@ The Xcode project is generated and gitignored. Run `xcodegen generate` after add
 
 ## Loom
 
-Use the real Loom at `http://10.100.90.20:8097` unless a deterministic simulator lineup or an undeployed channels-API change requires `scripts/mock-loom.py`. The mock independently encodes the channels contract; update it whenever that contract changes.
+Use the configured Loom server unless a deterministic simulator lineup or an undeployed channels-API change requires `scripts/mock-loom.py`. The mock independently encodes the channels contract; update it whenever that contract changes.
 
 ## Simulator and device validation
 

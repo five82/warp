@@ -8,7 +8,9 @@ The channel lineup is built once at startup from the real catalog and served
 from memory; the response shape below is the API contract.
 
 Usage:
-    scripts/mock-loom.py --loom http://10.100.90.20:8097 --port 8098 [--seed 1234]
+    scripts/mock-loom.py [--loom http://loom.local:8097] [--port 8098] [--seed 1234]
+
+When --loom is omitted, the upstream server is discovered over mDNS.
 """
 
 import argparse
@@ -25,6 +27,8 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+
+from loom_discovery import discover_loom
 
 # ---------------------------------------------------------------------------
 # Constants that define the lineup. Order here fixes channel numbering, so do
@@ -582,13 +586,16 @@ class Server(socketserver.ThreadingTCPServer):
 
 def main():
     parser = argparse.ArgumentParser(description="Loom reverse proxy with synthesized channels")
-    parser.add_argument("--loom", default="http://10.100.90.20:8097")
+    parser.add_argument("--loom", help="upstream Loom base URL (default: discover over mDNS)")
     parser.add_argument("--port", type=int, default=8098)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--seed", type=int, default=1234)
     args = parser.parse_args()
 
-    base = args.loom.rstrip("/")
+    try:
+        base = (args.loom or discover_loom()).rstrip("/")
+    except (OSError, RuntimeError) as error:
+        parser.error(str(error))
     log("mock-loom: upstream %s, listening on %s:%d, seed %d" % (base, args.host, args.port, args.seed))
     channels = build_lineup(Loom(base), args.seed)
 
