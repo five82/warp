@@ -3,8 +3,13 @@ import SwiftUI
 /// The flip banner: channel number and name, what is on, how far through the
 /// block we are, what is next, and the picture's badges. Shows on every flip,
 /// on Left/Right, and on a captions toggle, then auto-hides. The CC badge is
-/// lit in the channel's colour when captions are on and dim when off; it is
-/// the only indication of the global switch, so it is always drawn.
+/// lit in the channel's hue when captions are on and dim when off; it is the
+/// only indication of the global switch, so it is always drawn.
+///
+/// A glass card with the spectrum along its top edge; the number glows in the
+/// channel's hue. The blur samples the video underneath, which is the one
+/// piece of GPU work the banner adds over mpv - watch `warp.tune` if it ever
+/// looks like it costs a frame.
 struct ChannelBanner: View {
     let channel: Channel
     let program: Program?
@@ -12,10 +17,12 @@ struct ChannelBanner: View {
     let now: Date
     let captionsEnabled: Bool
 
+    private static let cornerRadius: CGFloat = 22
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
-            HStack(alignment: .top, spacing: 30) {
+            HStack(alignment: .center, spacing: 34) {
                 number
                 details
                 Spacer(minLength: 0)
@@ -23,30 +30,35 @@ struct ChannelBanner: View {
                     artwork(for: program)
                 }
             }
-            .padding(34)
-            .background(Color(hexValue: 0x0A0E17).opacity(0.78), in: RoundedRectangle(cornerRadius: 28))
-            .overlay(RoundedRectangle(cornerRadius: 28).stroke(Color.ink.opacity(0.14), lineWidth: 1))
+            .padding(.horizontal, 38)
+            .padding(.vertical, 34)
+            .background(.ultraThinMaterial)
+            .background(Color.ground.opacity(0.55))
+            .overlay(alignment: .top) { Ramp(height: 4) }
+            .clipShape(RoundedRectangle(cornerRadius: Self.cornerRadius))
+            .overlay(RoundedRectangle(cornerRadius: Self.cornerRadius).stroke(Color.ink.opacity(0.06), lineWidth: 1))
+            .shadow(color: .black.opacity(0.5), radius: 40, y: 20)
         }
         .padding(.horizontal, TVLayout.sideMargin)
         .padding(.bottom, TVLayout.verticalMargin)
     }
 
-    private var thread: Color { channelThread(channel.key) }
+    private var hue: Color { channelHue(channel.key) }
 
     private var number: some View {
         VStack(spacing: 6) {
             Text(String(channel.number))
-                .font(.displayMedium.monospacedDigit())
-                .foregroundStyle(thread)
-            Selvedge(height: 4)
-                .frame(width: 60)
+                .font(.system(size: 66, weight: .semibold).monospacedDigit())
+                .foregroundStyle(.white)
+                .shadow(color: hue.opacity(0.45), radius: 12)
+            RowLabel(text: channel.name, color: hue, font: .labelSmall, tracking: TypeScale.labelSmall * 0.14)
+                .lineLimit(1)
         }
-        .frame(minWidth: 96)
+        .frame(minWidth: 110)
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
-            RowLabel(text: channel.name, color: .muted)
             if let program {
                 Text(programTitle(program.item))
                     .font(.titleLarge)
@@ -63,15 +75,15 @@ struct ChannelBanner: View {
                         .font(.labelMedium.monospacedDigit())
                         .foregroundStyle(Color.muted)
                     ForEach(videoBadges(program.video), id: \.self) { badge in
-                        TechBadge(text: badge, color: badge == "HDR" || badge == "DV" ? .amber : .muted)
+                        TechBadge(text: badge, color: badge == "HDR" || badge == "DV" ? .amber : .chip)
                     }
-                    TechBadge(text: "CC", color: captionsEnabled ? thread : .faint)
+                    TechBadge(text: "CC", color: captionsEnabled ? hue : .faint)
                 }
-                ThreadProgress(fraction: blockFraction(program, at: now), color: thread)
+                BlockProgress(fraction: blockFraction(program, at: now), color: hue)
                     .frame(width: 700)
-                    .padding(.top, 4)
+                    .padding(.top, 6)
                 if let next {
-                    Text("Next: \(programTitle(next.item))\(nextDetail)")
+                    Text("Next \u{00B7} \(programTitle(next.item))\(nextDetail)")
                         .font(.bodySmall)
                         .foregroundStyle(Color.faint)
                         .lineLimit(1)
@@ -95,7 +107,7 @@ struct ChannelBanner: View {
     private func artwork(for program: Program) -> some View {
         // The banner is the only place Warp shows artwork, so it takes the
         // 16:9 still an episode wears and the poster otherwise.
-        ChannelArtwork(item: program.item, thread: thread)
+        ChannelArtwork(item: program.item, hue: hue)
             .frame(width: 300, height: 169)
             .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -105,7 +117,7 @@ struct ChannelBanner: View {
 /// poster, else the title set in type.
 struct ChannelArtwork: View {
     let item: Item
-    var thread: Color = .ember
+    var hue: Color = .cobalt
     @Environment(AppEnvironment.self) private var appEnvironment
 
     var body: some View {
@@ -114,7 +126,7 @@ struct ChannelArtwork: View {
             if let url = artURL {
                 CachedImage(url: url, contentMode: .fill)
             } else {
-                MissingArt(title: item.title, tint: thread)
+                MissingArt(title: item.title, tint: hue)
             }
         }
     }
@@ -141,9 +153,9 @@ struct UnplayableCard: View {
 
     var body: some View {
         ZStack {
-            Color.stage.opacity(0.94).ignoresSafeArea()
+            Color.ground.opacity(0.94).ignoresSafeArea()
             VStack(spacing: 18) {
-                Selvedge(height: 4)
+                Ramp(height: 4)
                     .frame(width: 110)
                 Text("This Apple TV can't play this program")
                     .font(.displaySmall)

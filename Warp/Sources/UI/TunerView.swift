@@ -64,7 +64,7 @@ struct TunerView: View {
 
             if let error = tuner.loadError, tuner.lineup == nil {
                 ZStack {
-                    ThreeThreads(colors: [RGB(hexValue: 0xFF4D55), RGB(hexValue: 0x3FD1C4), RGB(hexValue: 0xA78BFA)])
+                    Glow(color: .ember)
                     ErrorState(message: error) {
                         Task { await tuner.refresh() }
                     }
@@ -177,9 +177,9 @@ struct TunerView: View {
 
     private var offAirCard: some View {
         ZStack {
-            Color.stage.opacity(0.94).ignoresSafeArea()
+            Color.ground.opacity(0.94).ignoresSafeArea()
             VStack(spacing: 16) {
-                Selvedge(height: 4).frame(width: 110)
+                Ramp(height: 4).frame(width: 110)
                 Text("Off air")
                     .font(.displaySmall)
                     .foregroundStyle(Color.ink)

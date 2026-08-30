@@ -15,14 +15,11 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            ThreeThreads(
-                colors: [RGB(hexValue: 0xFF4D55), RGB(hexValue: 0x3FD1C4), RGB(hexValue: 0xA78BFA)],
-                drifting: true
-            )
+            Glow()
             VStack(spacing: 0) {
                 Spacer()
 
-                Selvedge()
+                Ramp()
                     .frame(width: 140)
                 Text(title)
                     .font(.displayLarge)
@@ -41,7 +38,7 @@ struct OnboardingView: View {
                             } label: {
                                 HStack(spacing: 20) {
                                     Image(systemName: "server.rack")
-                                        .foregroundStyle(Color.teal)
+                                        .foregroundStyle(Color.cobalt)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(server.name)
                                             .font(.titleSmall)
@@ -60,7 +57,7 @@ struct OnboardingView: View {
                     } else {
                         HStack(spacing: 14) {
                             ProgressView()
-                                .tint(.teal)
+                                .tint(.cobalt)
                             Text("Looking for Loom on your network\u{2026}")
                                 .font(.bodyMedium)
                                 .foregroundStyle(Color.muted)
@@ -81,7 +78,7 @@ struct OnboardingView: View {
                         Button(connecting ? "Connecting\u{2026}" : "Connect") {
                             Task { await connect(to: draft) }
                         }
-                        .buttonStyle(TVPillButtonStyle(fill: .ember, onFill: Color(hexValue: 0x33060A)))
+                        .buttonStyle(TVPillButtonStyle(fill: .cobalt, onFill: Color(hexValue: 0x08182F)))
                         .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty || connecting)
                         .opacity(draft.trimmingCharacters(in: .whitespaces).isEmpty || connecting ? 0.5 : 1)
 
@@ -106,7 +103,7 @@ struct OnboardingView: View {
             }
             .padding(TVLayout.sideMargin)
         }
-        .background(Color.stage)
+        .background(Color.ground)
         .onAppear {
             discovery.start()
             draft = appEnvironment.serverURLString

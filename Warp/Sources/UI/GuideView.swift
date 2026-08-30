@@ -72,7 +72,7 @@ struct GuideView: View {
 
     var body: some View {
         ZStack {
-            Color.stage.opacity(0.93).ignoresSafeArea()
+            Color.ground.opacity(0.92).ignoresSafeArea()
             // The ruler and the rows are 24 hours wide; every container they
             // sit in needs an explicit width or their ideal width blows the
             // layout out to 23,000 points, so measure the screen once and
@@ -149,7 +149,7 @@ struct GuideView: View {
                     .foregroundStyle(Color.ink)
             }
             Spacer()
-            Button("Server", action: onSettings)
+            Button("Loom", action: onSettings)
                 .buttonStyle(TVPillButtonStyle())
         }
     }
@@ -164,7 +164,8 @@ struct GuideView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 16) {
                     Text(String(channel.number))
                         .font(.titleMedium.monospacedDigit())
-                        .foregroundStyle(channelThread(channel.key))
+                        .foregroundStyle(channelHue(channel.key))
+                        .shadow(color: channelHue(channel.key).opacity(0.6), radius: 8)
                         .frame(width: 54, alignment: .trailing)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(channel.name)
@@ -230,7 +231,7 @@ struct GuideView: View {
     /// One row of cells; the highlighted one is `selectedProgram` while the
     /// row has focus.
     private func row(for channel: Channel, width: CGFloat) -> some View {
-        let accent = channelThread(channel.key)
+        let accent = channelHue(channel.key)
         let singleSeries = channel.isSingleSeries
         let focused = focusedChannel == channel.id
         let window = (gridOffset - width)...(gridOffset + 2 * width)
@@ -351,14 +352,18 @@ private struct GuideCell: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
+        // Strokeless; the highlighted cell gets a ring and a bloom in the
+        // channel's hue instead of a heavier stroke.
         .background(
-            highlighted ? accent.opacity(0.32) : Color.surface1.opacity(0.85),
-            in: RoundedRectangle(cornerRadius: 12)
+            highlighted ? accent.opacity(0.22) : Color.ink.opacity(0.05),
+            in: RoundedRectangle(cornerRadius: 10)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(highlighted ? accent : Color.line, lineWidth: highlighted ? 3 : 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(accent, lineWidth: 2)
+                .opacity(highlighted ? 1 : 0)
         )
+        .shadow(color: accent.opacity(highlighted ? 0.7 : 0), radius: 14)
         .animation(.easeOut(duration: 0.12), value: highlighted)
     }
 }

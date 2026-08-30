@@ -36,14 +36,14 @@ struct RootView: View {
             if appEnvironment.client == nil {
                 OnboardingView()
             } else if showSettings {
-                OnboardingView(title: "Server", onDone: { showSettings = false })
+                OnboardingView(title: "Loom", onDone: { showSettings = false })
             } else if let client = appEnvironment.client {
                 TunerView(client: client, options: options, openSettings: { showSettings = true })
                     // A new server address means a new lineup and a new player.
                     .id(appEnvironment.serverURLString)
             }
         }
-        .background(Color.stage)
+        .background(Color.ground)
         .onAppear {
             if let server = options.server, !server.isEmpty {
                 appEnvironment.serverURLString = server

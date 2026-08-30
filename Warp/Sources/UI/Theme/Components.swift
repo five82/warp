@@ -1,54 +1,32 @@
 import SwiftUI
 
-// The shared pieces of the design system Warp actually uses, copied from
-// Takeup's Components.swift.
+// The shared pieces of Warp's design system.
 
-/// The woven brand stripe: ember, teal, amber, violet in fixed proportion.
-struct Selvedge: View {
+/// The mark: the spectrum as a thin rounded bar, teal to amber.
+struct Ramp: View {
     var height: CGFloat = 4
 
-    private static let pattern: [(Color, CGFloat)] = [
-        (.ember, 0.40), (.teal, 0.29), (.amber, 0.20), (.violet, 0.11),
-    ]
-
     var body: some View {
-        GeometryReader { proxy in
-            let repeatWidth = min(proxy.size.width, 140)
-            let tiles = Int((proxy.size.width / repeatWidth).rounded(.up))
-            HStack(spacing: 0) {
-                ForEach(0..<max(tiles, 1), id: \.self) { _ in
-                    ForEach(0..<Self.pattern.count, id: \.self) { index in
-                        Self.pattern[index].0
-                            .frame(width: repeatWidth * Self.pattern[index].1)
-                    }
-                }
-            }
-        }
-        .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: height / 2))
+        RoundedRectangle(cornerRadius: height / 2)
+            .fill(LinearGradient.spectrum)
+            .frame(height: height)
     }
 }
 
-/// Progress drawn as a thread being woven: a thin line in the given color
-/// brightening toward its end, on a faint unwoven track.
-struct ThreadProgress: View {
+/// How far through the block we are: a solid bar in the channel's hue on a
+/// faint neutral track. The banner's crown already carries the spectrum.
+struct BlockProgress: View {
     var fraction: Double
     var color: Color
-    var tipColor: Color?
     var height: CGFloat = 6
 
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2)
-                    .fill(color.opacity(0.18))
+                    .fill(Color.ink.opacity(0.10))
                 RoundedRectangle(cornerRadius: height / 2)
-                    .fill(
-                        LinearGradient(
-                            colors: [color, tipColor ?? color.opacity(0.65)],
-                            startPoint: .leading, endPoint: .trailing
-                        )
-                    )
+                    .fill(color)
                     .frame(width: proxy.size.width * min(max(fraction, 0), 1))
             }
         }
@@ -56,7 +34,7 @@ struct ThreadProgress: View {
     }
 }
 
-/// Artwork fallback: the title set in the display voice over a Surface1 field,
+/// Artwork fallback: the title set in the label voice over a Surface1 field,
 /// under a short tinted rule.
 struct MissingArt: View {
     var title: String
@@ -80,10 +58,11 @@ struct MissingArt: View {
     }
 }
 
-/// Outlined uppercase tech badge: 4K, HDR, HEVC.
+/// Filled uppercase tech chip: 4K, HDR, HEVC, CC. Tinted with its colour at
+/// low alpha rather than outlined.
 struct TechBadge: View {
     var text: String
-    var color: Color = .muted
+    var color: Color = .chip
 
     var body: some View {
         Text(text.uppercased())
@@ -91,20 +70,20 @@ struct TechBadge: View {
             .foregroundStyle(color)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
-            .overlay(RoundedRectangle(cornerRadius: 7).stroke(color.opacity(0.55), lineWidth: 1))
+            .background(color.opacity(0.18), in: RoundedRectangle(cornerRadius: 7))
     }
 }
 
-/// "The loom is dark" - errors carry the brand voice, over a short selvedge.
+/// "No signal" - the app can not reach Loom at all.
 struct ErrorState: View {
     var message: String
     var retry: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 18) {
-            Selvedge(height: 4)
+            Ramp(height: 4)
                 .frame(width: 110)
-            Text("The loom is dark")
+            Text("No signal")
                 .font(.displaySmall)
                 .foregroundStyle(Color.ink)
             Text(message)
@@ -113,7 +92,7 @@ struct ErrorState: View {
                 .multilineTextAlignment(.center)
             if let retry {
                 Button("Try again", action: retry)
-                    .buttonStyle(TVPillButtonStyle(fill: .ember, onFill: Color(hexValue: 0x33060A)))
+                    .buttonStyle(TVPillButtonStyle(fill: .cobalt, onFill: Color(hexValue: 0x08182F)))
                     .padding(.top, 10)
             }
         }
