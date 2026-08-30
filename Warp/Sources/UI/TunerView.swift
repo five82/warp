@@ -28,6 +28,10 @@ struct TunerView: View {
     /// When Select asked for the guide; `warp.guide` logs the time to the
     /// frame that shows it.
     @State private var guideRequestedAt: ContinuousClock.Instant?
+    /// Set while the app is in the background, so the next `.active` knows
+    /// it is a resume and not the launch (which `tuner.run()` covers).
+    @State private var suspended = false
+    @Environment(\.scenePhase) private var scenePhase
 
     private static let log = Logger(subsystem: "xyz.five82.warp", category: "guide")
 
@@ -124,6 +128,20 @@ struct TunerView: View {
             // Give the first tune time to land before the run starts.
             try? await Task.sleep(for: .seconds(6))
             await tuner.surf(count)
+        }
+        // Live TV kept going while we were away: coming back re-tunes to the
+        // channel's current position, never to where the video was left.
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .background:
+                suspended = true
+                tuner.suspend()
+            case .active where suspended:
+                suspended = false
+                Task { await tuner.resync() }
+            default:
+                break
+            }
         }
         // Every tune (a flip or a block boundary) shows the banner.
         .onChange(of: tuner.tuneTick) { _, _ in showBanner() }

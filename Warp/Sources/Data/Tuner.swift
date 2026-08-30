@@ -97,6 +97,9 @@ final class Tuner {
     private var queuedProgramId: Int64?
     private var blockedProgramId: Int64?
     private var programIdForPath: [String: Int64] = [:]
+    /// True between suspend() and resync(): the tick must not re-tune into a
+    /// backgrounded app.
+    private var suspended = false
 
     init(client: LoomClient, defaults: UserDefaults = .standard, frozen: Bool = false, startChannel: Int? = nil) {
         self.client = client
@@ -181,6 +184,41 @@ final class Tuner {
         }
     }
 
+    // MARK: - Background and foreground
+
+    /// The app is leaving the screen. Nothing streams in the background, and
+    /// whatever mpv holds is stale the moment we come back, so stop rather
+    /// than let tvOS freeze a decoder mid-frame.
+    func suspend() {
+        suspended = true
+        controller?.stop()
+        controller?.clearQueue()
+        playingProgramId = nil
+        queuedProgramId = nil
+        blockedProgramId = nil
+    }
+
+    /// Back on screen. A channel is live television: it kept going while we
+    /// were away, so re-fetch the lineup (which also re-anchors the server
+    /// clock - systemUptime stalls while the box sleeps) and tune to wherever
+    /// the schedule says the channel is now, never to where the video was.
+    func resync() async {
+        playingProgramId = nil
+        queuedProgramId = nil
+        blockedProgramId = nil
+        blockedReason = nil
+        // Stay suspended through the fetch so the tick can not tune on the
+        // pre-sleep clock; the first decision after a resume is this one.
+        await refresh()
+        suspended = false
+        // On a failed refresh this tunes on the stale lineup and clock, which
+        // is still better than a frozen frame.
+        evaluate()
+        let offset = current.map { $0.offset(at: serverNow) } ?? 0
+        let line = "warp.resync channel \(channelNumber) \(current?.item.title ?? "-") offset \(Int(offset)) s"
+        Self.log.info("\(line, privacy: .public)")
+    }
+
     // MARK: - Channel selection
 
     func channelUp() { step(by: 1) }
@@ -209,6 +247,7 @@ final class Tuner {
     // MARK: - The decision
 
     func evaluate() {
+        guard !suspended else { return }
         guard let channel else {
             if lineup != nil { offAir = true }
             return

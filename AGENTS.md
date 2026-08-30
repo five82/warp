@@ -106,7 +106,7 @@ xcrun simctl boot "$UDID"
 
 ```bash
 ./scripts/tv-driver.sh start -server http://10.100.90.134:8098 -channel 3
-./scripts/tv-driver.sh send select        # up down left right select menu playpause
+./scripts/tv-driver.sh send select        # up down left right select menu playpause home activate
 xcrun simctl io "$UDID" screenshot /tmp/check.png
 ./scripts/tv-driver.sh stop               # self-terminates after 30 min regardless
 ```

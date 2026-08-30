@@ -28,6 +28,7 @@ final class RemoteDriver: XCTestCase {
         let buttons: [Substring: XCUIRemote.Button] = [
             "up": .up, "down": .down, "left": .left, "right": .right,
             "select": .select, "menu": .menu, "playpause": .playPause,
+            "home": .home,
         ]
         // Backstop so an orphaned driver does not hold the simulator forever.
         let deadline = Date().addingTimeInterval(30 * 60)
@@ -39,6 +40,13 @@ final class RemoteDriver: XCTestCase {
             try? fm.removeItem(at: cmdFile)
             for token in line.split(whereSeparator: { $0.isWhitespace }) {
                 if token == "quit" { return }
+                // `home` sends the app to the background; `activate` brings
+                // it back, for exercising the resume path.
+                if token == "activate" {
+                    app.activate()
+                    Thread.sleep(forTimeInterval: 1)
+                    continue
+                }
                 if let button = buttons[token] {
                     XCUIRemote.shared.press(button)
                     // Let the focus engine's motion settle between presses.
