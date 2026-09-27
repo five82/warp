@@ -20,7 +20,6 @@ UDID=35085BEA-A61D-54EA-A44D-EABC64DC0EDF
 SERVER=${WARP_SERVER:-$(python3 "$SCRIPT_DIR/loom_discovery.py")}
 LOG=/tmp/warp-device-console.log
 
-export DEVELOPER_DIR=${DEVELOPER_DIR:-/Applications/Xcode-beta.app}
 cd "$SCRIPT_DIR/.."
 
 xcodebuild -project Warp.xcodeproj -scheme Warp \

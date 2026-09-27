@@ -23,11 +23,9 @@ The app icon and top-shelf artwork are generated. Edit `scripts/make-icon.swift`
 
 ## Build and test
 
-Use the Xcode beta toolchain; both the simulator and physical Apple TV run the tvOS 27 beta.
+Use the selected Xcode toolchain (Xcode 27); both the simulator and physical Apple TV run tvOS 27.
 
 ```bash
-export DEVELOPER_DIR=/Applications/Xcode-beta.app
-
 xcodebuild -project Warp.xcodeproj -scheme Warp \
   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' \
   -derivedDataPath DerivedDataTV build

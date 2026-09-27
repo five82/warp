@@ -2,7 +2,7 @@ name: Warp
 options:
   bundleIdPrefix: xyz.five82
   deploymentTarget:
-    # The physical Apple TV runs the tvOS 27 beta, matching the simulator runtime.
+    # The physical Apple TV and simulator both run tvOS 27.
     tvOS: "27.0"
   createIntermediateGroups: true
 
