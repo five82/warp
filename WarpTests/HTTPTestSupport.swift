@@ -44,7 +44,7 @@ private final class StubURLProtocol: URLProtocol {
 final class StubLoomServer {
     let baseURL: URL
     let client: LoomClient
-    private let session: URLSession
+    let session: URLSession
 
     init(_ handler: @escaping (URLRequest) -> (Int, Data)) {
         let host = "stub-\(UUID().uuidString.lowercased()).test"

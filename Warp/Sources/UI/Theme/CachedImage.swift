@@ -10,8 +10,10 @@ final class ImageStore {
 
     private let cache = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
+    private let session: URLSession
 
-    private init() {
+    init(session: URLSession = .shared) {
+        self.session = session
         // Capped by memory footprint, not count: a decoded 1440-wide backdrop
         // weighs ~5MB against a 240 bucket's ~130KB, so a count limit either
         // starves posters or lets backdrops balloon memory (the Apple TV
@@ -30,8 +32,9 @@ final class ImageStore {
         // defers the actual JPEG decode to first render, which would land on
         // the main thread mid-scroll exactly as new cells appear.
         // byPreparingForDisplay forces it here instead.
+        let session = session
         let task = Task.detached(priority: .userInitiated) { () -> UIImage? in
-            guard let (data, _) = try? await URLSession.shared.data(from: url),
+            guard let (data, _) = try? await session.data(from: url),
                   let image = UIImage(data: data)
             else { return nil }
             return await image.byPreparingForDisplay() ?? image
