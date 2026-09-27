@@ -55,6 +55,7 @@ final class ImageStore {
 struct CachedImage<Placeholder: View>: View {
     let url: URL?
     var contentMode: ContentMode = .fill
+    var store: ImageStore? = nil
     var onLoad: ((UIImage) -> Void)? = nil
     @ViewBuilder var placeholder: () -> Placeholder
 
@@ -71,17 +72,18 @@ struct CachedImage<Placeholder: View>: View {
             }
         }
         .task(id: url) {
+            let store = store ?? ImageStore.shared
             guard let url else {
                 image = nil
                 return
             }
-            if let hit = ImageStore.shared.cached(for: url) {
+            if let hit = store.cached(for: url) {
                 // Cached artwork paints on the first frame, no fade.
                 image = hit
                 onLoad?(hit)
                 return
             }
-            guard let fetched = await ImageStore.shared.image(for: url) else { return }
+            guard let fetched = await store.image(for: url) else { return }
             withAnimation(.easeIn(duration: 0.2)) { image = fetched }
             onLoad?(fetched)
         }
@@ -89,7 +91,7 @@ struct CachedImage<Placeholder: View>: View {
 }
 
 extension CachedImage where Placeholder == Color {
-    init(url: URL?, contentMode: ContentMode = .fill, onLoad: ((UIImage) -> Void)? = nil) {
-        self.init(url: url, contentMode: contentMode, onLoad: onLoad) { Color.surface1 }
+    init(url: URL?, contentMode: ContentMode = .fill, store: ImageStore? = nil, onLoad: ((UIImage) -> Void)? = nil) {
+        self.init(url: url, contentMode: contentMode, store: store, onLoad: onLoad) { Color.surface1 }
     }
 }

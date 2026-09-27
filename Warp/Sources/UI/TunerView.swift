@@ -35,11 +35,11 @@ struct TunerView: View {
 
     private static let log = Logger(subsystem: "xyz.five82.warp", category: "guide")
 
-    init(client: LoomClient, options: LaunchOptions, openSettings: @escaping () -> Void) {
+    init(client: LoomClient, options: LaunchOptions, tuner: Tuner? = nil, openSettings: @escaping () -> Void) {
         self.client = client
         self.options = options
         self.openSettings = openSettings
-        _tuner = State(initialValue: Tuner(
+        _tuner = State(initialValue: tuner ?? Tuner(
             client: client,
             frozen: options.frozenClock,
             startChannel: options.channel
