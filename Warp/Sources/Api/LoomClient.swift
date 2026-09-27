@@ -14,11 +14,19 @@ struct LoomError: Error, LocalizedError {
 struct LoomClient {
     let baseURL: URL
 
-    private static let session: URLSession = {
+    private static let defaultSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 20
         return URLSession(configuration: config)
     }()
+
+    /// A per-client session lets tests stub HTTP without contacting a Loom server.
+    let session: URLSession
+
+    init(baseURL: URL, session: URLSession? = nil) {
+        self.baseURL = baseURL
+        self.session = session ?? Self.defaultSession
+    }
 
     private static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -98,7 +106,7 @@ struct LoomClient {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        let (data, response) = try await Self.session.data(for: request)
+        let (data, response) = try await session.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let message = try? Self.decoder.decode(ServerError.self, from: data).error

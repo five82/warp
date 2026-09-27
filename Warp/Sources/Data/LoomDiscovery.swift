@@ -55,30 +55,35 @@ final class LoomDiscovery {
                 guard case .ready = state else { return }
                 if let endpoint = connection.currentPath?.remoteEndpoint,
                    case let .hostPort(host, port) = endpoint {
-                    // Addresses off a connection path carry an interface
-                    // scope suffix (10.0.0.5%en0) that URLs reject; strip it.
-                    func bare(_ description: String) -> String {
-                        description.components(separatedBy: "%").first ?? description
-                    }
-                    let hostText: String
-                    switch host {
-                    case .ipv4(let address):
-                        hostText = bare("\(address)")
-                    case .ipv6(let address):
-                        hostText = "[\(bare("\(address)"))]"
-                    case .name(let hostname, _):
-                        hostText = hostname
-                    @unknown default:
-                        hostText = "\(host)"
-                    }
+                    let server = Self.server(name: name, host: host, port: port)
                     Task { @MainActor in
-                        self?.add(Server(name: name, urlString: "http://\(hostText):\(port)"))
+                        self?.add(server)
                     }
                 }
                 connection.cancel()
             }
             connection.start(queue: .main)
         }
+    }
+
+    /// Format a resolved endpoint for persistence. Connection paths can carry
+    /// an interface scope suffix, which is not valid in the saved URL.
+    nonisolated static func server(name: String, host: NWEndpoint.Host, port: NWEndpoint.Port) -> Server {
+        func bare(_ description: String) -> String {
+            description.components(separatedBy: "%").first ?? description
+        }
+        let hostText: String
+        switch host {
+        case .ipv4(let address):
+            hostText = bare("\(address)")
+        case .ipv6(let address):
+            hostText = "[\(bare("\(address)"))]"
+        case .name(let hostname, _):
+            hostText = hostname
+        @unknown default:
+            hostText = "\(host)"
+        }
+        return Server(name: name, urlString: "http://\(hostText):\(port)")
     }
 
     private func add(_ server: Server) {
